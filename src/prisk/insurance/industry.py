@@ -14,6 +14,9 @@ class Insurance:
     def add_subscriber(self, subscriber):
         self.subscribers.append(subscriber)
 
+    def remove_subscriber(self, subscriber):
+        self.subscribers.remove(subscriber)
+
     def payout(self, amount: float):
         self.capital -= amount
 

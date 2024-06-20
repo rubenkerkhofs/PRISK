@@ -2,7 +2,7 @@ from queue import PriorityQueue
 
 from numpy import floor
 
-from prisk.kernel.message import FloodEvent, StartofYearEvent
+from prisk.kernel.message import FloodEvent, StartofYearEvent, InsuranceDropoutEvent
 
 class Kernel:
     """
@@ -34,6 +34,8 @@ class Kernel:
             elif isinstance(message, StartofYearEvent):
                 for insurer in self.insurers:
                     insurer.collect_premiums(message.time)
+            elif isinstance(message, InsuranceDropoutEvent):
+                message.asset.remove_insurer()
         
         self.internal_time = time_horizon
         if verbose > 0:

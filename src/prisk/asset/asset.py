@@ -1,142 +1,187 @@
-from dataclasses import dataclass
-from typing import List, Literal
-
+""" Contains an  """
 import pandas as pd
 import plotly.graph_objects as go
-
-from prisk.flood import FloodExposure
-
-
-@dataclass
-class Location:
-    """A location is a geographical point on the Earth's surface."""
-
-    latitude: float
-    longitude: float
-
+import numpy as np
 
 class Asset:
-    """An asset typically corresponds to a physical entity that generates revenue."""
-
     def __init__(
-        self,
-        name: str,
-        status: str,
-        country: str,
-        location: Location,
-        value: float,
-        flood_exposure: List[FloodExposure],
-        flood_damages: pd.DataFrame,
-        discount_rate: float = 0.09,
-        growth_rate: float = 0.05,
-    ):
-        self.name = name
-        self.status = status
-        self.country = country
-        self.location = location
-        self.flood_exposure = flood_exposure
-        self.flood_damages = flood_damages
-        self.value = value
-        self.discount_rate = discount_rate
-        self.growth_rate = growth_rate
+            self,
+            name: str,
+            flood_damage_curve: pd.Series,
+            flood_exposure: float,
+            production_path: np.ndarray,
+            replacement_cost: float,
+            unit_price: float=60,
+            margin: float=0.2,
+            discount_rate: float=0.05,
+            insurer=None
+            ):
+        """ Initialize the AssetSim object
 
-    def __repr__(self):
-        return f"Asset({self.name})"
+        Parameters
+        ----------
+        name : str
+            Name of the asset
+        flood_damage_curve : pd.Series
+            A pandas series with the depth of flood as index and the damage as values.
+            There are two columns: (1) damage, (2) production. The damage is the fraction 
+            of the replacement cost that is lost, and the production is the fraction of
+            production that is lost.
+        flood_exposure : float
+            The flood exposure of the asset. This is needed to compute the expected 
+            damage needed to determine the insurer's premium.
+        production_path : np.ndarray
+            The production path of the asset. This is used to compute the revenue path.
+        replacement_cost : float
+            The replacement cost of the asset. This is used to compute the damage in case of a flood.
+        unit_price : float
+            The unit price of the asset. This is used to compute the revenue path.
+        margin : float
+            The margin of the asset. This is used to compute the cost path.
+        discount_rate : float
+            The discount rate of the asset. This is used to compute the NPV.
+        insurer : Insurance
+            The insurance company that insures the asset. This is used to compute the premium.
+        """
+        self.name = name
+        self.flood_damage_curve = flood_damage_curve
+        self.production_path = production_path
+        self._TIME_HORIZON = len(production_path)
+        self.damages = np.repeat(0.0, self._TIME_HORIZON)
+        self.disruptions = np.repeat(0.0, self._TIME_HORIZON)
+        self.discount_rate = discount_rate
+        self.replacement_cost = replacement_cost
+        self.flood_exposure = flood_exposure
+        self._insurer = insurer
+
+        self.unit_price = unit_price
+        self._MARGIN = margin
+        self.cost_path = self.revenue_path * (1 - self._MARGIN)
+        self.flood_protection = 0.0
+        self.update_expected_damage()
+        self.replacement_cost_path = np.repeat(0, self._TIME_HORIZON)
+        self.business_disruption_path = np.repeat(0, self._TIME_HORIZON)
+        self.insurance_fair_premium_path = np.repeat(0, self._TIME_HORIZON)
+        self.insurance_adjustment_path = np.repeat(0, self._TIME_HORIZON)
+        self.base_value = self.npv
+
+
 
     def __str__(self):
         return self.name
     
     @property
-    def net_profit(self) -> float:
-        return self.value * (self.discount_rate - self.growth_rate)
+    def revenue_path(self):
+        return self.production_path * self.unit_price
     
     @property
-    def cash_flow(self) -> float:
-        return self.value * (self.discount_rate - self.growth_rate)
-
-
-class PowerAsset(Asset):
-    """A power asset is a specific type of asset that produces electricity."""
-
-    def __init__(
-        self,
-        capacity: float, # In MW
-        type: Literal["bioenery", "oil/gas", "coal", "nuclear"],
-        net_profit_margin: float = 0.1,
-        capacity_factor: float = 0.9,
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
-        self.capacity = capacity
-        self.type = type
-        self.net_profit_margin = net_profit_margin
-        self.capacity_factor = capacity_factor
-
-    @property
-    def annual_capacity(self) -> float:
-        return self.capacity * 24 * 365 * self.capacity_factor
+    def cash_flow_path(self):
+        return self.revenue_path - self.cost_path - self.climate_cost_path
     
     @property
-    def average_price(self)-> float:
-        return self.net_profit / self.annual_capacity
-    
-    @property
-    def expected_replacement_cost(self) -> float:
-        expected_damages = 0
-        total_probability = 0
-        for exposure in self.flood_exposure:
-            total_probability += exposure.poisson_probability
-            damage = self.flood_damages.loc[exposure.depth].damage \
-                * self.value
-            expected_damages += exposure.poisson_probability * damage
-        return expected_damages
+    def discounted_cash_flow(self):
+        return np.sum(self.cash_flow_path * (1 - self.discount_rate) ** np.arange(self._TIME_HORIZON))
 
     @property
-    def expected_disruption_cost(self) -> float:
-        expected_damages = 0
-        for exposure in self.flood_exposure:
-            disruption_days = self.flood_damages.loc[exposure.depth].production
-            volume_change =(disruption_days/365)*self.annual_capacity
-            # TO DO: price impact function
-            price_change = 0
-            damages = self.annual_capacity * price_change \
-                + self.average_price * volume_change \
-                + volume_change * price_change
-            expected_damages += damages * exposure.poisson_probability
-        return expected_damages
-    
-    @property
-    def replacement_impact(self):
-        return self.expected_replacement_cost
-    
-    @property
-    def disruption_impact(self):
-        return self.expected_disruption_cost * (1/(self.discount_rate - self.growth_rate))
-    
-    @property
-    def expected_impact(self) -> float:
-        return self.replacement_impact + self.disruption_impact
-    
-    @property
-    def prisk(self) -> float:
-        return (self.value - self.expected_impact) / self.value
+    def climate_cost_path(self):
+        return self.replacement_cost_path \
+                + self.business_disruption_path \
+                + self.insurance_fair_premium_path \
+                + self.insurance_adjustment_path
 
+    @property
+    def terminal_value(self):
+        return (self.cash_flow_path[-1] + self.climate_cost_path[-1]) / (self.discount_rate)
 
+    @property
+    def npv(self):
+        return self.discounted_cash_flow + self.terminal_value/ (1 + self.discount_rate) ** (self._TIME_HORIZON+1)
+
+    @property
+    def total_replacement_costs(self):
+        return np.sum(self.replacement_cost_path * (1 - self.discount_rate) ** np.arange(self._TIME_HORIZON))
+    
+    @property
+    def total_business_disruption(self):
+        return np.sum(self.business_disruption_path * (1 - self.discount_rate) ** np.arange(self._TIME_HORIZON))
+    
+    @property
+    def total_fair_insurance_premiums(self):
+        return np.sum(self.insurance_fair_premium_path * (1 - self.discount_rate) ** np.arange(self._TIME_HORIZON))
+
+    @property
+    def total_insurance_adjustments(self):
+        return np.sum(self.insurance_adjustment_path * (1 - self.discount_rate) ** np.arange(self._TIME_HORIZON))
+
+    @property
+    def expected_damage(self):
+        return self.__expected_damage
+
+    def update_expected_damage(self):
+        expected_damage = 0
+        for flood_exposure in self.flood_exposure:
+            impact_depth = round(max(0, flood_exposure.depth - self.flood_protection), 2)
+            expected_damage += self.flood_damage_curve.loc[impact_depth].damage\
+                                     * flood_exposure.poisson_probability \
+                                     * self.replacement_cost
+        self.__expected_damage = expected_damage
+
+    def add_insurer(self, insurer):
+        self._insurer = insurer
+        insurer.add_subscriber(self)
+
+    def remove_insurer(self):
+        self._insurer.remove_subscriber(self)
+        self._insurer = None
+ 
+    def pay_insurance_premium(self, time):
+        premium = self._insurer.premium(self)*self.replacement_cost
+        fair_premium = self._insurer.get_fair_premium(self)*self.replacement_cost
+        year = int(np.floor(time))
+        self.insurance_fair_premium_path[year] += fair_premium
+        self.insurance_adjustment_path[year] += premium - fair_premium
+
+    def flood(self, depth: float, time: pd.Timestamp):
+        """ Simulate the flood event """
+        impact_depth = round(max(0, depth - self.flood_protection), 2)
+        damage = self.flood_damage_curve.loc[impact_depth].damage
+        production = self.flood_damage_curve.loc[impact_depth].production
+        year = int(np.floor(time))
+        if self._insurer is None:
+            self.replacement_cost_path[year] += self.replacement_cost*damage
+        else:
+            self._insurer.payout(self.replacement_cost*damage)
+        # Install flood protection
+        if damage > 0:
+            self.flood_protection = depth
+            self.update_expected_damage()
+        
+        self.business_disruption_path[year] += self.revenue_path[year]*production/365
+        # For now, we asusme a simple relation with costs. This needs to be
+        # changed to a more sophisticated model when more realistic data
+        # on production disruptions is available.
+        self.business_disruption_path[year] -= self.cost_path[year]*min(0.5, production/(365*2))
+        
     def plot_risk(self):
         fig = go.Figure(go.Waterfall(
             name = "PRISK - Waterfall", 
             orientation = "v",
-            measure = ["relative", "relative", "relative", "total"],
-            x = ["Base Value", "Capital Damagages", "Business disruptions", "Adjusted Value"],
+            measure = ["relative", "relative", "relative", "relative", "relative", "total"],
+            x = ["Base Value", "Capital Damagages", "Business disruptions", "Fair insurance premiums",
+                 "Insurance adjustments", "Adjusted Value"],
             textposition = "outside",
-            text = ["{:,.2f}M".format(self.value/1e6), 
-                    "{:,.2f}M".format(-self.replacement_impact/1e6), 
-                    "{:,.2f}M".format(-self.disruption_impact/1e6), 
-                    "{:,.2f}M".format((self.value - self.expected_impact)/1e6)],
-            y = [self.value, 
-                 -self.replacement_impact,
-                -self.disruption_impact, 
-                 self.value - self.expected_impact],
+            text = ["{:,.2f}M".format(self.base_value/1e6), 
+                    "{:,.2f}M".format(-self.total_replacement_costs/1e6), 
+                    "{:,.2f}M".format(-self.total_business_disruption/1e6), 
+                    "{:,.2f}M".format(-self.total_fair_insurance_premiums/1e6),
+                    "{:,.2f}M".format(-self.total_insurance_adjustments/1e6),
+                    "{:,.2f}M".format(self.npv/1e6)],
+            y = [self.base_value, 
+                 -self.total_replacement_costs,
+                -self.total_business_disruption,
+                -self.total_fair_insurance_premiums, 
+                -self.total_insurance_adjustments,
+                 self.npv],
             connector = {"line":{"color":"rgb(63, 63, 63)"}},
         ))
 
@@ -153,4 +198,21 @@ class PowerAsset(Asset):
         )
 
         fig.show()
+    
 
+class PowerPlant(Asset):
+    def __init__(
+            self,
+            *args,
+            **kwargs
+            ):
+        super().__init__(*args, **kwargs)
+
+    
+    
+    
+
+    
+    
+
+    

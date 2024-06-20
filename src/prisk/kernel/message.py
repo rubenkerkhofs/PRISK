@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:
-    from prisk.asset import AssetSim
+    from prisk.asset import Asset
 
 @dataclass
 class Message:
@@ -23,13 +23,18 @@ class Message:
     def __gt__(self, other: "Message") -> bool:  # type: ignore
         return self.time > other.time
 
-
 @dataclass
 class FloodEvent(Message):
     time: pd.Timestamp
     depth: float
-    asset: "AssetSim"
+    asset: "Asset"
     
 @dataclass
 class StartofYearEvent(Message):
     time: pd.Timestamp
+
+
+@dataclass
+class InsuranceDropoutEvent(Message):
+    time: pd.Timestamp
+    asset: "Asset"

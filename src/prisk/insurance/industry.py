@@ -5,11 +5,16 @@ class Insurance:
             self,
             name: str,
             capital: float,
-            subscribers: List=[]):
+            subscribers: List=[],
+            adjust_premiums: bool = True,
+            sensitivity: float = 0.1):
         self.name = name
         self.capital = capital
         self.start_capital = capital
         self.subscribers = subscribers.copy() # avoid default value being mutated, very important!
+        self.adjust_premiums = adjust_premiums
+        self.premium_adj_history = []
+        self.sensitivity = sensitivity
 
     def add_subscriber(self, subscriber):
         self.subscribers.append(subscriber)
@@ -30,9 +35,11 @@ class Insurance:
 
     def premium(self, asset):
         fair_premium = self.get_fair_premium(asset)
+        if not self.adjust_premiums:
+            return fair_premium
         minp = 0.7*fair_premium
         maxp = 1.35*fair_premium
-        s = 1
+        s = self.sensitivity
         capital_ratio = self.start_capital/self.capital
         p = fair_premium*(1 + s*(capital_ratio-1))
         return min(maxp, max(minp, p))

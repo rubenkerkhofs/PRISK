@@ -7,6 +7,9 @@ black==24.4.2
 cads-api-client==1.0.3
 cdsapi==0.7.0
 certifi==2024.2.2
+cffi==1.16.0
+cfgrib==0.9.12.0
+cftime==1.6.4
 charset-normalizer==3.3.2
 click==8.1.7
 click-plugins==1.1.1
@@ -17,11 +20,13 @@ copulas==0.11.0
 cycler==0.12.1
 debugpy==1.8.1
 decorator==5.1.1
+eccodes==1.7.1
 entrypoints==0.4
 et-xmlfile==1.1.0
 exceptiongroup==1.2.1
 executing==2.0.1
 fastjsonschema==2.19.1
+findlibs==0.0.5
 fonttools==4.51.0
 idna==3.7
 ipykernel==6.29.4
@@ -42,10 +47,12 @@ mypy-extensions==1.0.0
 nbclient==0.10.0
 nbformat==5.10.4
 nest-asyncio==1.6.0
+netCDF4==1.7.1
 numpy==1.26.4
 openpyxl==3.1.2
 packaging==24.0
 pandas==2.2.2
+pandas-stubs==2.2.2.240603
 papermill==2.6.0
 parso==0.8.4
 pathspec==0.12.1
@@ -53,12 +60,13 @@ pexpect==4.9.0
 pillow==10.3.0
 platformdirs==4.2.1
 plotly==5.22.0
--e git+https://github.com/rubenkerkhofs/PRISK.git@422f6c5b948d9408980bd128de38fbd6559328ff#egg=prisk
+-e git+https://github.com/rubenkerkhofs/PRISK.git@2f5915a14eda81df1379636332a0836e945fd62d#egg=prisk
 prompt-toolkit==3.0.43
 psutil==5.9.8
 ptyprocess==0.7.0
 pure-eval==0.2.2
 pyarrow==16.1.0
+pycparser==2.22
 Pygments==2.18.0
 pyparsing==3.1.2
 python-dateutil==2.9.0.post0
@@ -80,6 +88,7 @@ tomli==2.0.1
 tornado==6.4
 tqdm==4.66.4
 traitlets==5.14.3
+types-pytz==2024.1.0.20240417
 typing_extensions==4.11.0
 tzdata==2024.1
 urllib3==2.2.1

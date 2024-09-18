@@ -1,3 +1,12 @@
+*.xlsx
+*.parquet.gzip
+Exploratory*
+*.pkl
+sovereign/
+old_versions/
+robustness_checks/
+Data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

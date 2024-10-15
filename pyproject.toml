@@ -3,7 +3,7 @@ name = "prisk"
 version = "0.0.1"
 authors = [
   { name="Ruben Kerkhofs", email="ruben.kerkhofs@kuleuven.be"},
-  { name="Mark Bernhofen", email="mark.bernhofen@smith.ox.ac.uk"}
+  { name="Mark Bernhofen", email="mark.bernhofen@eci.ox.ac.uk"}
 ]
 description = "PRISK - Physical risk framework"
 readme = "README.md"

@@ -1269,8 +1269,8 @@ def get_dignad_inputs_for_rp(return_period, exceedance_probabilities, sorted_tra
 
 def model_dependence(plot=False):
     # Set relevant directories and filepaths
-    glofas_dir = "/Users/rubenkerkhofs/Desktop/glofas/" # where is the GloFAS data stored?
-    basin_outlet_file = "/Users/rubenkerkhofs/Desktop/glofas/lev06_outlets_final_clipped_Thailand_no_duplicates.csv" # CSV file with basin outlet points produced manually
+    glofas_dir = "glofas/" # where is the GloFAS data stored?
+    basin_outlet_file = "https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/lev06_outlets_final_clipped_Thailand_no_duplicates.csv" # CSV file with basin outlet points produced manually
 
     # Step 1: Load GloFAS river discharge data and upstream accumulating area data
     # Discharge data for producing GIRI maps is from 1979-2016

@@ -35,6 +35,8 @@ class Kernel:
                 for insurer in self.insurers:
                     insurer.collect_premiums(message.time)
             elif isinstance(message, InsuranceDropoutEvent):
+                if verbose:
+                    print(f"Insurance dropout at year {int(floor(self.internal_time))} at {message.asset}")
                 message.asset.remove_insurer()
         
         self.internal_time = time_horizon

@@ -6,6 +6,7 @@ import pandas as pd
 import geopandas as gpd
 import plotly.graph_objects as go
 import re
+from scipy.stats import norm
 
 from prisk.firm import Holding
 from prisk.asset import PowerPlant
@@ -22,6 +23,8 @@ def convert_to_continous_damage(damage_curves):
 
 damage_curves = pd.read_excel("https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/damage_curves.xlsx")
 power = pd.read_excel("https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/power.xlsx")
+indian_firms = pd.read_excel("https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/Indian_firms.xlsx")
+indian_firm_mapping = mapping = {row["name"]: row["clean"] for _, row in indian_firms[["name", "clean"]].iterrows()}
 power.drop(columns=[2], inplace=True)
 continuous_curves = convert_to_continous_damage(damage_curves)
 return_period_columns = [5, 10, 25, 50, 100, 200, 500, 1000]
@@ -89,9 +92,12 @@ def clean_owner_name(owner):
     owner = re.sub(r'\[[^)]*\]', "", owner)
     owner = owner.strip()
     owner = owner.title()
+    if owner in indian_firm_mapping:
+        owner = indian_firm_mapping[owner]
+        return owner
     return owner
 
-def extract_firms(assets, damage_curves=None):
+def extract_firms(assets, damage_curves=None, leverage_ratios={}, discount_rate=0.05, unit_price=60, margin=0.2, time_horizon=25):
     assets.sort_values("Owner", inplace=True)
     if damage_curves is None:
         damage_curves = continuous_curves
@@ -102,8 +108,11 @@ def extract_firms(assets, damage_curves=None):
                                                 flood_exposure=[FloodExposure(return_period, x[return_period]) 
                                                                 for return_period in return_period_columns if x[return_period] > 0],
                                                 flood_protection = x["flood_protection"],
-                                                production_path=np.repeat(x["Capacity (MW)"]*24*365, 25),
-                                                replacement_cost=x["Value"]
+                                                production_path=np.repeat(x["Capacity (MW)"]*24*365, time_horizon),
+                                                replacement_cost=x["Value"],
+                                                unit_price=unit_price,
+                                                discount_rate=discount_rate,
+                                                margin=margin,
                                           ), axis=1)
     list_of_owners = []
     for owners in assets["Owner"].unique():
@@ -114,7 +123,7 @@ def extract_firms(assets, damage_curves=None):
             o = clean_owner_name(o)
             list_of_owners.append(o)
     list_of_owners = list(OrderedDict.fromkeys(list_of_owners))
-    owner_map = {owner: Holding(owner) for owner in list_of_owners}
+    owner_map = {owner: Holding(owner, leverage_ratio=leverage_ratios.get(owner)) for owner in list_of_owners}
     holdings = []
     for i, owner in enumerate(assets["Owner"]):
         if pd.isna(owner):
@@ -142,8 +151,28 @@ def link_basins(data, basins, basin_outlet_file, visualize=True, save=False):
     data_merged = geo_data.sjoin(basins[["HYBAS_ID", "geometry"]], how="left")
     data_merged.loc[:, "HYBAS_ID"] = data_merged.HYBAS_ID.apply(lambda x: str(int(x)) if not pd.isnull(x) else pd.NA)
     if visualize:
-        basins.plot(color=basins.color, figsize=(5, 5))
+        basins.plot(color=basins.color, figsize=(20, 20))
         plt.scatter(data.Longitude, data.Latitude, c="red", s=50)
         if save:
             plt.savefig('map.png', transparent=True)
     return data_merged, basins
+
+def merton_probability_of_default(V, sigma_V, D, r=0, T=1):
+    """
+    Calculate the probability of default using the Merton model.
+
+    Parameters:
+    V (float): Current value of the company's assets.
+    sigma_V (float): Volatility of the company's assets.
+    D (float): Face value of the company's debt.
+    r (float): Risk-free interest rate.
+    T (float): Time to maturity of the debt.
+
+    Returns:
+    float: Probability of default.
+    """
+    # Calculate d2
+    d2 = (np.log(V / D) + (r - 0.5 * sigma_V**2) * T) / (sigma_V * np.sqrt(T))
+    # Calculate the probability of default
+    PD = norm.cdf(-d2)
+    return PD

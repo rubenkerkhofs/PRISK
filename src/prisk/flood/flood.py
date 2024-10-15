@@ -59,33 +59,40 @@ class FloodBasinSim:
     @classmethod
     def generate_events_set(
             self, 
-            basins: List[str], 
-            years:int = 25,
-            random_numbers: Optional[pd.DataFrame] = None):
+            random_numbers: pd.DataFrame,
+            years:int = 25):
         """
         Generate a set of flood events based on the return periods and the number of events
         for each return period
 
         Parameters
         ----------
-        basins : List[str]
-            The list of basins to generate the events for
         years : int
             The number of years to generate the events for
         random_numbers : pd.DataFrame
-            The random numbers to use for the simulation. If None, random numbers will be generated
-            using a uniform distribution.
+            The random numbers to use for the simulation.
         """
         return_periods = [5, 10, 25, 50, 100, 200, 500, 1000]
         events = pd.DataFrame()
-        if random_numbers is not None:
-            simulations_data = random_numbers
-        else:
-            simulations_data = pd.DataFrame(np.random.uniform(0, 1, size=(years*len(return_periods), len(basins))), 
-                                        columns=basins).reset_index(drop=True)
-        for _, return_period in enumerate(return_periods):
-            simulated_data = simulations_data.sample(n=years).reset_index(drop=True)
-            simulated_data = simulated_data.apply(lambda x: poisson.ppf(x, 1/return_period)).reset_index()
+        for return_period in return_periods:
+            simulated_data = random_numbers.sample(years)
+            simulated_data = simulated_data.apply(lambda x: poisson.ppf(x, 1/return_period)).reset_index().clip(0, 1)
+            simulated_data = simulated_data.replace(0, pd.NA).melt(id_vars="index").dropna()
+            if simulated_data.empty:
+                continue
+            simulated_data.loc[:, "return_period"] = return_period
+            events = pd.concat([events, simulated_data])
+        events.columns = ["year", "basin", "events", "return_period"]
+        events.basin = events.basin.astype(str)
+        return events
+
+    @classmethod
+    def events_df(self, random_numbers, years=25):
+        return_periods = [5, 10, 25, 50, 100, 200, 500, 1000]
+        events = pd.DataFrame()
+        for return_period in return_periods:
+            simulated_data = random_numbers.sample(years)
+            simulated_data = simulated_data.apply(lambda x: poisson.ppf(x, 1/return_period)).reset_index().clip(0, 1)
             simulated_data = simulated_data.replace(0, pd.NA).melt(id_vars="index").dropna()
             if simulated_data.empty:
                 continue
@@ -132,3 +139,4 @@ class FloodEntitySim:
             np.random.seed(self.random_seed)
         if self.model == "poisson":
             self._simulate_poisson(time_horizon, kernel)
+

@@ -139,6 +139,7 @@ class Asset:
         self.business_disruption_path = np.repeat(0, self._TIME_HORIZON)
         self.insurance_fair_premium_path = np.repeat(0, self._TIME_HORIZON)
         self.insurance_adjustment_path = np.repeat(0, self._TIME_HORIZON)
+        self.cost_path = self.revenue_path * (1 - self._MARGIN)
         if self._insurer:
             self.remove_insurer()
         self.update_expected_damage()

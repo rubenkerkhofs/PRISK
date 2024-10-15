@@ -1,1 +1,1 @@
-Put the data files here. This includes the randomly generated numbers.
+Put the data files here. This includes the randomly generated numbers. The randomly generated numbers can be download from the following link (note: this downloads a large file of 581MB): https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/random-numbers/prisk-random-numbers.zip

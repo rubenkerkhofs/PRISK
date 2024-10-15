@@ -10,7 +10,7 @@ class Holding:
     def __init__(
             self, 
             name: str, 
-            leverage_ratio: float=0.407867) -> None:
+            leverage_ratio: float=0.50) -> None:
         """
         Parameters
         ----------
@@ -143,8 +143,9 @@ class Holding:
     @property
     def delta_pd(self) -> float:
         # Parameters obtained from a regression analysis conducted by the ECB (2021 Economy
-        # wide stress test)
-        return 0.0454*self.delta_leverage - 0.0533*self.delta_profitability
+        # wide stress test). The parameters have been adjusted such that the delta_pd
+        # is comparable to the merton model
+        return 0.454*self.delta_leverage - 0.533*self.delta_profitability
     
 
 

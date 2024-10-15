@@ -5,6 +5,7 @@
 sovereign/
 old_versions/
 robustness_checks/
+Exploratory Analyses/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

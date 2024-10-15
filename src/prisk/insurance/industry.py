@@ -7,7 +7,7 @@ class Insurance:
             capital: float,
             subscribers: List=[],
             adjust_premiums: bool = True,
-            sensitivity: float = 0.1):
+            sensitivity: float = 1):
         self.name = name
         self.capital = capital
         self.start_capital = capital

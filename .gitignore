@@ -1,3 +1,4 @@
+tests/data
 *.xlsx
 *.parquet.gzip
 *.png

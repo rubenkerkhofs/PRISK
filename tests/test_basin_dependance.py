@@ -124,7 +124,7 @@ def test_basin_dependence(
     uniform_random_numbers = pd.Series(np.random.uniform(size=1000))
 
     # Define return period columns
-    return_period_columns = ["RP10", "RP50", "RP100"]
+    return_period_columns = [5, 10, 25, 50, 100, 200, 500, 1000]
 
     # Prepare India data and ensure required columns
     india = setup_india_data
@@ -167,7 +167,11 @@ def test_basin_dependence(
 
     for i in tqdm(range(simulations), desc="Simulating Basin Dependence"):
         # Generate events for basin-level dependence
-        events = events_df(uniform_random_numbers, years=time_horizon)
+        events = events_df(
+            uniform_random_numbers,
+            return_period_columns=return_period_columns,
+            years=time_horizon,
+        )
         assets = india_with_assets["asset"].tolist()
         insurer = Insurance("Insurance company", capital=insurer_capital)
         kernel = Kernel(assets=assets, insurers=[insurer])

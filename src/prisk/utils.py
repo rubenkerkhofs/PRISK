@@ -172,9 +172,6 @@ def extract_firms(
         the power plant objects.
     """
 
-    if leverage_ratios is None:
-        leverage_ratios = {}
-
     new_assets = assets.copy()
     new_assets.sort_values("Owner", inplace=True)
 
@@ -282,7 +279,7 @@ def merton_probability_of_default(V, sigma_V, D, r=0, T=1):
     return PD
 
 
-def events_df(random_numbers, years=25):
+def events_df(random_numbers, return_period_columns, years=25):
     """
     Simulate basin-level flood events based on random numbers and return periods.
 
@@ -298,9 +295,12 @@ def events_df(random_numbers, years=25):
     pd.DataFrame
         DataFrame containing simulated flood events.
     """
-    return_periods = [5, 10, 25, 50, 100, 200, 500, 1000]
+    assert all(
+        isinstance(x, (int, float)) for x in return_period_columns
+    ), "All values in return_period_columns must be numeric"
+
     events = pd.DataFrame()
-    for return_period in return_periods:
+    for return_period in return_period_columns:
         simulated_data = random_numbers.sample(years).reset_index(drop=True)
         simulated_data = simulated_data.apply(
             lambda x: poisson.ppf(x, 1 / return_period)

@@ -1,3 +1,4 @@
+Data/app
 tests/data
 *.xlsx
 *.parquet.gzip

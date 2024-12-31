@@ -78,7 +78,7 @@ def test_independant_flood(
     setup_india_data, indian_firm_mapping, leverage_ratios, damage_curves
 ):
     # Test parameters
-    country = "Thailand"
+    country = "India"
     flood_protection = 100
     insured = True  # You can parametrize this as needed
     insurer_capital = 2e9
@@ -88,13 +88,10 @@ def test_independant_flood(
     time_horizon = 25
 
     # Define or load your damage_curves and return_period_columns
-    return_period_columns = ["RP10", "RP50", "RP100"]  # Adjust based on your data
+    return_period_columns = [5, 10, 25, 50, 100, 200, 500, 1000]
 
     # Ensure return_period_columns exist in the data
     india = setup_india_data
-    for col in return_period_columns:
-        if col not in india.columns:
-            india[col] = 0  # Assign default values or load actual data
 
     # Ensure necessary columns exist
     if "Value" not in india.columns:

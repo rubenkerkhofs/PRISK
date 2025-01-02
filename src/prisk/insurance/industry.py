@@ -1,5 +1,8 @@
 from typing import List
-from prisk.asset import Asset
+
+# TODO FIX : Cannot import Asset due to circular import with asset.py that's importing
+#   Due to that, Insurance's parameter subscribers cannot be typed as List[Assets]
+# from prisk.asset import Asset
 
 
 class Insurance:
@@ -7,7 +10,7 @@ class Insurance:
         self,
         name: str,
         capital: float,
-        subscribers: List[Asset] = [],
+        subscribers: List = [],
         adjust_premiums: bool = True,
         sensitivity: float = 1,
     ):

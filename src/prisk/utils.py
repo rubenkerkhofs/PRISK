@@ -27,16 +27,6 @@ def convert_to_continous_damage(damage_curves):
     return continuous_curves
 
 
-# power = pd.read_excel("https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/power.xlsx")
-# indian_firms = pd.read_excel(
-#     "https://kuleuven-prisk.s3.eu-central-1.amazonaws.com/Indian_firms.xlsx"
-# )
-# power.drop(columns=[2], inplace=True)
-
-
-# return_period_columns = [5, 10, 25, 50, 100, 200, 500, 1000]
-
-
 def bootstrap_mean(data, column_name, samples=100):
     bootstrapped = data.sample(n=samples, replace=True)
     return bootstrapped[column_name].mean()

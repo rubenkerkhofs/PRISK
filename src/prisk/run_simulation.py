@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 
-from prisk.utils import events_df, merton_probability_of_default
+from prisk.utils import get_events_df, merton_probability_of_default
 from prisk.kernel import Kernel, InsuranceDropoutEvent
 from prisk.flood import FloodEntitySim, FloodBasinSim
 
@@ -83,7 +83,7 @@ def run_simulation(
 
         # Simulate Flood Events based on Copula
         if random_numbers is not None:
-            events = events_df(
+            events = get_events_df(
                 random_numbers=random_numbers,
                 return_period_columns=return_period_columns,
                 years=time_horizon,
@@ -115,7 +115,7 @@ def run_simulation(
         portfolio_values.append(portfolio.underlying_value)
 
         # Calculate PDs if applicable
-        if calculate_pds:
+        if calculate_pds and sigma:
             # Empirical PDs
             empirical_pds_sim = [firm.delta_pd for firm in firms]
             empirical_pds.append(empirical_pds_sim)

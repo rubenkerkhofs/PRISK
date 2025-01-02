@@ -264,7 +264,7 @@ def merton_probability_of_default(V, sigma_V, D, r=0, T=1):
     return PD
 
 
-def events_df(random_numbers, return_period_columns, years=25):
+def get_events_df(random_numbers, return_period_columns, years=25):
     """
     Simulate basin-level flood events based on random numbers and return periods.
 

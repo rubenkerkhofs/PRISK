@@ -10,7 +10,7 @@ from prisk.utils import (
     convert_to_continous_damage,
     merton_probability_of_default,
     link_basins,
-    events_df,
+    get_events_df,
 )
 from prisk.kernel import Kernel
 from prisk.flood import FloodBasinSim
@@ -167,7 +167,7 @@ def test_basin_dependence(
 
     for i in tqdm(range(simulations), desc="Simulating Basin Dependence"):
         # Generate events for basin-level dependence
-        events = events_df(
+        events = get_events_df(
             uniform_random_numbers,
             return_period_columns=return_period_columns,
             years=time_horizon,

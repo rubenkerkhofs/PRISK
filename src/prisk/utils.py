@@ -124,12 +124,12 @@ def plot_risk_factors(
     return fig
 
 
-def clean_owner_name(owner, indian_firm_mapping):
+def clean_owner_name(owner, firm_mapping):
     owner = re.sub(r"\[[^)]*\]", "", owner)
     owner = owner.strip()
     owner = owner.title()
-    if owner in indian_firm_mapping:
-        owner = indian_firm_mapping[owner]
+    if owner in firm_mapping:
+        owner = firm_mapping[owner]
         return owner
     return owner
 
@@ -138,7 +138,7 @@ def extract_firms(
     assets,
     damage_curves,
     return_period_columns,
-    indian_firm_mapping,
+    firm_mapping,
     leverage_ratios=None,
     discount_rate=0.05,
     unit_price=60,
@@ -200,7 +200,7 @@ def extract_firms(
         if pd.isna(owners):
             continue
         for o in owners.split(";"):
-            cleaned = clean_owner_name(o, indian_firm_mapping)
+            cleaned = clean_owner_name(o, firm_mapping)
             list_of_owners.append(cleaned)
 
     # Remove duplicates while preserving order
@@ -223,7 +223,7 @@ def extract_firms(
                 share = float(share_match[0].replace("%", "")) / 100
             else:
                 share = 1
-            cleaned_owner = clean_owner_name(o, indian_firm_mapping)
+            cleaned_owner = clean_owner_name(o, firm_mapping)
             holding = owner_map[cleaned_owner]
             holding.add_asset(new_assets.loc[i, "asset"], share)
             holdings.append(holding)
@@ -233,7 +233,7 @@ def extract_firms(
     return holdings_list, new_assets
 
 
-def link_basins(data, basins, country_basins, visualize=True, save=False):
+def link_basins(data, basins, country_basins):
     geo_data = gpd.GeoDataFrame(
         data,
         geometry=gpd.points_from_xy(data.Longitude, data.Latitude),
@@ -250,11 +250,6 @@ def link_basins(data, basins, country_basins, visualize=True, save=False):
     data_merged.loc[:, "HYBAS_ID"] = data_merged.HYBAS_ID.apply(
         lambda x: str(int(x)) if not pd.isnull(x) else pd.NA
     )
-    if visualize:
-        basins.plot(color=basins.color, figsize=(20, 20))
-        plt.scatter(data.Longitude, data.Latitude, c="red", s=50)
-        if save:
-            plt.savefig("map.png", transparent=True)
     return data_merged, basins
 
 

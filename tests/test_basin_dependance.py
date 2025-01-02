@@ -143,7 +143,7 @@ def test_basin_dependence(
         assets=india,
         damage_curves=damage_curves,
         return_period_columns=return_period_columns,
-        indian_firm_mapping=indian_firm_mapping,
+        firm_mapping=indian_firm_mapping,
         leverage_ratios=leverage_ratios,
         discount_rate=0.05,
         unit_price=60,
@@ -158,7 +158,7 @@ def test_basin_dependence(
 
     # Link basins
     india_with_assets, basins = link_basins(
-        india_with_assets, basins=basins, country_basins=country_basins, visualize=True
+        india_with_assets, basins=basins, country_basins=country_basins
     )
 
     empirical_independent_basins = []

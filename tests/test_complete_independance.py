@@ -105,7 +105,7 @@ def test_independant_flood(
         damage_curves=damage_curves,
         return_period_columns=return_period_columns,
         leverage_ratios=leverage_ratios,
-        indian_firm_mapping=indian_firm_mapping,
+        firm_mapping=indian_firm_mapping,
         discount_rate=0.05,
         unit_price=60,
         margin=0.2,

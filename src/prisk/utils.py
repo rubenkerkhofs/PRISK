@@ -114,13 +114,10 @@ def plot_risk_factors(
     return fig
 
 
-def clean_owner_name(owner, firm_mapping):
+def clean_owner_name(owner):
     owner = re.sub(r"\[[^)]*\]", "", owner)
     owner = owner.strip()
     owner = owner.title()
-    if owner in firm_mapping:
-        owner = firm_mapping[owner]
-        return owner
     return owner
 
 
@@ -128,7 +125,6 @@ def extract_firms(
     assets,
     damage_curves,
     return_period_columns,
-    firm_mapping,
     leverage_ratios=None,
     discount_rate=0.05,
     unit_price=60,
@@ -190,7 +186,7 @@ def extract_firms(
         if pd.isna(owners):
             continue
         for o in owners.split(";"):
-            cleaned = clean_owner_name(o, firm_mapping)
+            cleaned = clean_owner_name(o)
             list_of_owners.append(cleaned)
 
     # Remove duplicates while preserving order
@@ -213,7 +209,7 @@ def extract_firms(
                 share = float(share_match[0].replace("%", "")) / 100
             else:
                 share = 1
-            cleaned_owner = clean_owner_name(o, firm_mapping)
+            cleaned_owner = clean_owner_name(o)
             holding = owner_map[cleaned_owner]
             holding.add_asset(new_assets.loc[i, "asset"], share)
             holdings.append(holding)

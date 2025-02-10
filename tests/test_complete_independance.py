@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from prisk.utils import extract_firms, convert_to_continous_damage
+from prisk.utils import extract_firms, convert_to_continous_damage, clean_owner_name
 from prisk.kernel import Kernel, InsuranceDropoutEvent
 from prisk.flood import FloodEntitySim
 from prisk.portfolio import Portfolio
@@ -20,63 +20,67 @@ def test_data_dir():
 
 @pytest.fixture
 def load_power_data(test_data_dir):
-    power_file = os.path.join(test_data_dir, "power.xlsx")
-    power = pd.read_excel(power_file)
+    power_file = os.path.join(test_data_dir, "power_iso2.csv")
+    power = pd.read_csv(power_file)
+    power = power.rename(
+        columns={
+            "2": 2,
+            "5": 5,
+            "10": 10,
+            "25": 25,
+            "50": 50,
+            "100": 100,
+            "200": 200,
+            "500": 500,
+            "1000": 1000,
+        }
+    )
     return power
 
 
 @pytest.fixture
-def setup_india_data(load_power_data, flood_protection_value=100, country="India"):
-    india = (
-        load_power_data[load_power_data["Country"] == country]
-        .copy()
-        .reset_index(drop=True)
-        .drop(columns=[2])
+def leverage_ratios(test_data_dir, load_power_data):
+    financial_medians_file = os.path.join(test_data_dir, "financial_medians.csv")
+    financial_medians = pd.read_csv(financial_medians_file)
+
+    # Filter for power sector
+    financial_data_power = financial_medians[financial_medians["sector"] == "Power"]
+
+    # Merge with power data
+    financial_data = pd.merge(
+        financial_data_power, load_power_data, on=["country_iso2"]
     )
-    india["flood_protection"] = flood_protection_value
-    return india
+    financial_data = financial_data.loc[
+        :, ["Owner", "Plant / Project name", "debt_equity_ratio"]
+    ]
+    financial_data = financial_data.rename(
+        columns={"debt_equity_ratio": "Leverage Ratio"}
+    )
 
-
-@pytest.fixture
-def indian_firm_mapping(test_data_dir):
-    indian_firms_file = os.path.join(test_data_dir, "Indian_firms.xlsx")
-    indian_firms = pd.read_excel(indian_firms_file)  # Load damage curves
-    return {
-        row["name"]: row["clean"]
-        for _, row in indian_firms[["name", "clean"]].iterrows()
-    }
-
-
-@pytest.fixture
-def leverage_ratios(test_data_dir):
-    financial_data_file = os.path.join(test_data_dir, "Indian_firms.xlsx")
-    financial_data = pd.read_excel(financial_data_file)
+    # Fill missing values with the median
     median_ratio = financial_data["Leverage Ratio"].median()
     financial_data["Leverage Ratio"].fillna(median_ratio, inplace=True)
+
+    # Normalize firm names
+    financial_data["Owner"] = financial_data["Owner"].str.split(";")
+    financial_data = financial_data.explode("Owner", ignore_index=True)
+
     return {
-        firm: leverage
+        clean_owner_name(str(firm)): leverage
         for firm, leverage in zip(
-            financial_data["clean"], financial_data["Leverage Ratio"]
+            financial_data["Owner"], financial_data["Leverage Ratio"]
         )
     }
 
 
 @pytest.fixture
 def damage_curves(test_data_dir):
-    """
-    Fixture to load damage curves and convert them to continuous curves.
-    """
     damage_curves_file = os.path.join(test_data_dir, "damage_curves.xlsx")
-    damage_curves = pd.read_excel(damage_curves_file)  # Load damage curves
-    continuous_curves = convert_to_continous_damage(
-        damage_curves
-    )  # Convert to continuous curves
-    return continuous_curves
+    damage_curves = pd.read_excel(damage_curves_file)
+    return convert_to_continous_damage(damage_curves)
 
 
-def test_independant_flood(
-    setup_india_data, indian_firm_mapping, leverage_ratios, damage_curves
-):
+def test_independant_flood(load_power_data, leverage_ratios, damage_curves):
     # Test parameters
     country = "India"
     flood_protection = 100
@@ -91,7 +95,7 @@ def test_independant_flood(
     return_period_columns = [5, 10, 25, 50, 100, 200, 500, 1000]
 
     # Ensure return_period_columns exist in the data
-    india = setup_india_data
+    india = load_power_data
 
     # Ensure necessary columns exist
     if "Value" not in india.columns:
@@ -105,7 +109,6 @@ def test_independant_flood(
         damage_curves=damage_curves,
         return_period_columns=return_period_columns,
         leverage_ratios=leverage_ratios,
-        firm_mapping=indian_firm_mapping,
         discount_rate=0.05,
         unit_price=60,
         margin=0.2,
